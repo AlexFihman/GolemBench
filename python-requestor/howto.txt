@@ -1,0 +1,4 @@
+# Find active providers, run following, kill by Ctrl-C after 2-3 minutes:
+python3 proposal.py > proposal.txt
+
+# Benchmark test providers

@@ -1,0 +1,5 @@
+how to build:
+
+docker build -t sysbench .
+gvmkit-build sysbench
+gvmkit-build sysbench --push
