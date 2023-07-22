@@ -10,14 +10,14 @@ from yapapi.log import enable_default_logger
 from yapapi.payload import vm
 from yapapi.strategy import (
     MarketStrategy, SCORE_NEUTRAL, SCORE_TRUSTED,
-    SCORE_REJECTED, ComputationHistory
+    SCORE_REJECTED
 )
 
 
 class MyStrategy(MarketStrategy):
 
     async def score_offer(
-            self, offer: rest.market.OfferProposal, history: Optional[ComputationHistory] = None
+            self, offer: rest.market.OfferProposal
     ) -> float:
         """Score `offer`. Better offers should get higher scores."""
         now = datetime.now()
@@ -49,7 +49,7 @@ async def main():
     tasks = [Task(data=None)]
     #tasks = [Task(data=x) for x in range(3)]
 
-    async with Golem(budget=1e-12,network="mainnet", subnet_tag="public-beta", strategy=MyStrategy()) as golem:
+    async with Golem(budget=1e-12, strategy=MyStrategy()) as golem:
         async for completed in golem.execute_tasks(worker, tasks, payload=package):
             print(completed.result.stdout)
             print(completed.id)

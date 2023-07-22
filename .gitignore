@@ -1,3 +1,6 @@
 /docker_image/.howto.txt.kate-swp
 java/GolemScan/out/*
 java/GolemScan/.idea/*
+java/GolemScan/target/*
+python-requestor/hello.log
+python-requestor/proposal.txt
