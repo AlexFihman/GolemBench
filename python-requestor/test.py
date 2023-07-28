@@ -11,7 +11,7 @@ from yapapi.log import enable_default_logger
 from yapapi.payload import vm
 from yapapi.strategy import (
     MarketStrategy, SCORE_TRUSTED,
-    SCORE_REJECTED, ComputationHistory, LeastExpensiveLinearPayuMS
+    SCORE_REJECTED, LeastExpensiveLinearPayuMS
 )
 
 # providers tested in current run
@@ -23,7 +23,7 @@ tested_providers = []
 class MyStrategy(MarketStrategy):
 
     async def score_offer(
-            self, offer: rest.market.OfferProposal, history: Optional[ComputationHistory] = None
+            self, offer: rest.market.OfferProposal
     ) -> float:
         """Score `offer`. Better offers should get higher scores."""
         # now = datetime.now()
@@ -38,12 +38,13 @@ class MyStrategy(MarketStrategy):
 
         p = offer.props["golem.com.pricing.model.linear.coeffs"]
         # test only inexpensive providers
-        if p[0] > 1.0e-4:
-            return SCORE_REJECTED
-        if p[1] > 1.0e-4:
-            return SCORE_REJECTED
-        if p[2] > 1.0e-4:
-            return SCORE_REJECTED
+        #if p[0] > 1.0e-4:
+        #    return SCORE_REJECTED
+        #if p[1] > 1.0e-4:
+        #    return SCORE_REJECTED
+        #if p[2] > 1.0e-4:
+        #    return SCORE_REJECTED
+
         # provider name -> id 
         provider_ids[offer.props["golem.node.id.name"]] = offer.issuer
         return SCORE_TRUSTED
@@ -57,17 +58,17 @@ async def worker(context: WorkContext, tasks: AsyncIterable[Task]):
         tested_providers.append(provider_ids[context.provider_name])
         os.system(f"date >> start.txt")
         os.system(f"echo {provider_id} >> start.txt")
-        context.run("/bin/sh", "-c", f"printf \"{provider_id}\n\" >> geek.txt")
-        context.run("/bin/sh", "-c", "sysbench --test=cpu --cpu-max-prime=10000 run | grep \"events per second\" >> geek.txt")
-        context.run("/bin/sh", "-c", "sysbench --test=cpu --cpu-max-prime=10000 --threads=`nproc` run | grep \"events per second\" >> geek.txt")
+        script = context.new_script()
+        script.run("/bin/sh", "-c", f"printf \"{provider_id}\n\" >> geek.txt")
+        script.run("/bin/sh", "-c", "sysbench --test=cpu --cpu-max-prime=10000 run | grep \"events per second\" >> geek.txt")
+        script.run("/bin/sh", "-c", "sysbench --test=cpu --cpu-max-prime=10000 --threads=`nproc` run | grep \"events per second\" >> geek.txt")
         # context.run("/bin/sh", "-c", "7z b >> geek.txt")
-        context.run("/bin/sh", "-c", "ls -la /golem/work/")
+        script.run("/bin/sh", "-c", "ls -la /golem/work/")
         output_file = "geek2.txt"
-        context.run("/bin/sh", "-c", "mv /golem/work/*.* /golem/output")
+        script.run("/bin/sh", "-c", "mv /golem/work/*.* /golem/output")
+        future_results = script.download_file("/golem/output/geek.txt", output_file)
 
-        context.download_file("/golem/output/geek.txt", output_file)
-
-        future_results = yield context.commit()
+        yield script
         results = await future_results
         os.system(f"cat {output_file} >> geek.txt")
         os.system(f"date >> finish.txt")
@@ -87,7 +88,7 @@ async def main():
 
     tasks = [Task(data=None)]
 
-    async with Golem(budget=5.0e-2,network="mainnet", subnet_tag="public-beta", strategy=MyStrategy()) as golem:
+    async with Golem(budget=5.0e-2, strategy=MyStrategy()) as golem:
         async for completed in golem.execute_tasks(worker, tasks, payload=package):
             print(completed.result)
 
